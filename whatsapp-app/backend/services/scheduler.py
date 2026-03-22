@@ -1,3 +1,4 @@
+from email.mime import message
 import time
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -43,17 +44,17 @@ def process_campaigns(app):
                         total_campaign_cost = 0.0
                         is_custom = campaign.template_name.startswith("CUSTOM_")
                         category = "service" if is_custom else "marketing"
-
                         def send_to_contact(contact):
-                            cost = get_conversation_cost(contact.phone, category)
-                            if campaign.template_name == "CUSTOM_TEXT":
-                                response = send_text(contact.phone, message)
-                            elif campaign.template_name == "CUSTOM_IMAGE":
-                                response = send_image(contact.phone, image_url, caption=message)
-                            else:
-                                response = send_template(contact.phone, campaign.template_name, image_url, message)
-                            msg_id = extract_message_id(response)
-                            return contact.id, msg_id, cost
+                            with app.app_context():
+                                cost = get_conversation_cost(contact.phone, category)
+                                if campaign.template_name == "CUSTOM_TEXT":
+                                    response = send_text(contact.phone, message)
+                                elif campaign.template_name == "CUSTOM_IMAGE":
+                                    response = send_image(contact.phone, image_url, caption=message)
+                                else:
+                                    response = send_template(contact.phone, campaign.template_name, image_url,message)
+                                msg_id = extract_message_id(response)
+                                return contact.id, msg_id, cost
 
                         with ThreadPoolExecutor(max_workers=10) as executor:
                             futures = {executor.submit(send_to_contact, c): c for c in contacts}

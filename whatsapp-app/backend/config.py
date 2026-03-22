@@ -10,3 +10,4 @@ class Config:
     PUBLIC_URL = os.getenv("PUBLIC_URL", "http://localhost:5000").rstrip("/")
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///db.sqlite3")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
