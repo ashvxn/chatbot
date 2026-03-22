@@ -1,5 +1,6 @@
 import time
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from extensions import db
 from models import Campaign, Contact, CampaignRecipient
@@ -40,33 +41,37 @@ def process_campaigns(app):
                         
                         contacts = query.all()
                         total_campaign_cost = 0.0
-                        
-                        for contact in contacts:
-                            # Detect Category
-                            is_custom = campaign.template_name.startswith("CUSTOM_")
-                            category = "service" if is_custom else "marketing"
-                            
-                            cost = get_conversation_cost(contact.phone, category)
-                            total_campaign_cost += cost
+                        is_custom = campaign.template_name.startswith("CUSTOM_")
+                        category = "service" if is_custom else "marketing"
 
-                            response = None
+                        def send_to_contact(contact):
+                            cost = get_conversation_cost(contact.phone, category)
                             if campaign.template_name == "CUSTOM_TEXT":
                                 response = send_text(contact.phone, message)
                             elif campaign.template_name == "CUSTOM_IMAGE":
                                 response = send_image(contact.phone, image_url, caption=message)
                             else:
                                 response = send_template(contact.phone, campaign.template_name, image_url, message)
-                            
                             msg_id = extract_message_id(response)
-                            if msg_id:
-                                recipient = CampaignRecipient(
-                                    campaign_id=campaign.id,
-                                    contact_id=contact.id,
-                                    whatsapp_msg_id=msg_id,
-                                    status="sent",
-                                    estimated_cost=cost
-                                )
-                                db.session.add(recipient)
+                            return contact.id, msg_id, cost
+
+                        with ThreadPoolExecutor(max_workers=10) as executor:
+                            futures = {executor.submit(send_to_contact, c): c for c in contacts}
+                            for future in as_completed(futures):
+                                try:
+                                    contact_id, msg_id, cost = future.result()
+                                    total_campaign_cost += cost
+                                    if msg_id:
+                                        recipient = CampaignRecipient(
+                                            campaign_id=campaign.id,
+                                            contact_id=contact_id,
+                                            whatsapp_msg_id=msg_id,
+                                            status="sent",
+                                            estimated_cost=cost
+                                        )
+                                        db.session.add(recipient)
+                                except Exception as e:
+                                    print(f"Failed to send to contact: {e}")
                         
                         campaign.total_estimated_cost = total_campaign_cost
                         campaign.status = "completed"
