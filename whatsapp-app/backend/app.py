@@ -10,13 +10,16 @@ from routes.campaigns import campaigns_bp
 from routes.templates import templates_bp
 from routes.webhook import webhook
 from routes.analytics import analytics_bp
+from flask_cors import CORS
+
 
 def create_app():
     app = Flask(__name__, 
                 static_folder="../frontend/dist", 
                 static_url_path="/")
     app.config.from_object(Config)
-    CORS(app)
+    # CORS(app)
+    CORS(app, origins="*")  # or specify your frontend URL
 
     # ✅ ENSURE DIRECTORIES EXIST
     os.makedirs("static/posters", exist_ok=True)
