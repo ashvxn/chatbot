@@ -43,30 +43,6 @@ def receive():
                         db.session.add(existing)
                         db.session.commit()
 
-                    # Update Tags based on interest
-                    if msg.get("type") == "interactive":
-                        # Check both list and button reply structures
-                        interactive = msg["interactive"]
-                        btn_id = None
-                        if "button_reply" in interactive:
-                            btn_id = interactive["button_reply"]["id"]
-                        elif "list_reply" in interactive:
-                            btn_id = interactive["list_reply"]["id"]
-                        
-                        interest_map = {
-                            "expertise": "DEV_INTEREST",
-                            "marketing": "MARKETING_INTEREST",
-                            "works": "PORTFOLIO_INTEREST",
-                            "call_request": "CALL_REQUESTED"
-                        }
-                        
-                        new_tag = interest_map.get(btn_id)
-                        if new_tag:
-                            tags = [t.strip() for t in (existing.tags.split(",") if existing.tags else [])]
-                            if new_tag not in tags:
-                                tags.append(new_tag)
-                                existing.tags = ", ".join(tags)
-                                db.session.commit()
 
                 # 3. HANDLE STATUS UPDATES
                 statuses = value.get("statuses", [])
@@ -82,7 +58,9 @@ def receive():
 
                 # 4. TRIGGER FAQ REPLIES
                 for msg in messages:
-                    handle_faq(msg)
+                    sender_phone = msg.get("from")
+                    contact = Contact.query.filter_by(phone=sender_phone).first()
+                    handle_faq(msg, contact)
                     
     except Exception as e:
         print(f"Error handling webhook: {e}")

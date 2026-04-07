@@ -19,6 +19,13 @@ class Campaign(db.Model):
     total_estimated_cost = db.Column(db.Float, default=0.0)
     recipients = db.relationship('CampaignRecipient', backref='campaign', cascade="all, delete-orphan", lazy=True)
 
+class ConversationHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    phone = db.Column(db.String(20), index=True)
+    role = db.Column(db.String(10))  # "user" or "model"
+    content = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 class CampaignRecipient(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     campaign_id = db.Column(db.Integer, db.ForeignKey('campaign.id'), nullable=False)
