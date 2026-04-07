@@ -95,7 +95,7 @@ def _get_model():
             raise ValueError("GEMINI_API_KEY not set")
         genai.configure(api_key=api_key)
         _model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
+            model_name="gemini-1.5-flash",
             system_instruction=SYSTEM_PROMPT,
             generation_config={"response_mime_type": "application/json"}
         )
