@@ -197,7 +197,7 @@ def handle_faq(msg, contact):
 
         # Call Gemini
         chat = client.chats.create(
-            model="gemini-2.0-flash",
+            model="gemini-2.0-flash-lite",
             history=history,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT,
