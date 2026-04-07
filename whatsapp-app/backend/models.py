@@ -31,6 +31,15 @@ class CampaignRecipient(db.Model):
     campaign_id = db.Column(db.Integer, db.ForeignKey('campaign.id'), nullable=False)
     contact_id = db.Column(db.Integer, db.ForeignKey('contact.id'), nullable=False)
     whatsapp_msg_id = db.Column(db.String(100), unique=True)
-    status = db.Column(db.String(20), default="sent") 
+    status = db.Column(db.String(20), default="sent")
     estimated_cost = db.Column(db.Float, default=0.0)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class CallRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    phone = db.Column(db.String(20), index=True)
+    caller_name = db.Column(db.String(100))
+    preferred_time = db.Column(db.String(200))
+    notes = db.Column(db.Text)
+    status = db.Column(db.String(20), default="pending")  # pending, confirmed, done
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

@@ -10,6 +10,7 @@ from routes.campaigns import campaigns_bp
 from routes.templates import templates_bp
 from routes.webhook import webhook
 from routes.analytics import analytics_bp
+from routes.calls import calls_bp
 from flask_cors import CORS
 
 
@@ -33,6 +34,7 @@ def create_app():
     app.register_blueprint(templates_bp)
     app.register_blueprint(webhook)
     app.register_blueprint(analytics_bp)
+    app.register_blueprint(calls_bp)
 
 
     @app.before_request
