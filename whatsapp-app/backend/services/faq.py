@@ -1,6 +1,7 @@
 import os
 import json
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from services.whatsapp import send_text, send_interactive_buttons
 from models import ConversationHistory, CallRequest
 from extensions import db
@@ -84,22 +85,17 @@ If history is empty (very first message from this user), write a brief 1-2 sente
 If history has any messages, do NOT introduce yourself again. Just respond to what the user said.
 """
 
-_model = None
+_client = None
 
 
-def _get_model():
-    global _model
-    if _model is None:
+def _get_client():
+    global _client
+    if _client is None:
         api_key = os.environ.get("GEMINI_API_KEY", "")
         if not api_key:
             raise ValueError("GEMINI_API_KEY not set")
-        genai.configure(api_key=api_key)
-        _model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            system_instruction=SYSTEM_PROMPT,
-            generation_config={"response_mime_type": "application/json"}
-        )
-    return _model
+        _client = genai.Client(api_key=api_key)
+    return _client
 
 
 def _button_id_to_text(btn_id):
@@ -184,7 +180,7 @@ def handle_faq(msg, contact):
         return
 
     try:
-        model = _get_model()
+        client = _get_client()
 
         # Load last 20 conversation turns (40 rows = 20 user+model pairs)
         history_rows = (
@@ -194,10 +190,20 @@ def handle_faq(msg, contact):
             .limit(40)
             .all()
         )
-        history = [{"role": r.role, "parts": [r.content]} for r in history_rows]
+        history = [
+            types.Content(role=r.role, parts=[types.Part(text=r.content)])
+            for r in history_rows
+        ]
 
         # Call Gemini
-        chat = model.start_chat(history=history)
+        chat = client.chats.create(
+            model="gemini-2.0-flash",
+            history=history,
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                response_mime_type="application/json"
+            )
+        )
         response = chat.send_message(user_text)
         raw = response.text
 
