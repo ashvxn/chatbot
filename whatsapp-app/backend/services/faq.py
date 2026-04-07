@@ -80,9 +80,8 @@ If the user naturally mentions their name during conversation (e.g., "Hi, I'm Ra
   action = "update_contact_name", action_data = {"name": "Rahul"}
 
 --- FIRST MESSAGE ---
-If history is empty (very first message), introduce yourself briefly and show the main 3 buttons.
-Keep the intro to 1-2 sentences. Example:
-"Hi! I'm Aria from Obsidyne 👋 We build high-performance apps and run data-driven digital marketing. How can I help you today?"
+If history is empty (very first message from this user), write a brief 1-2 sentence intro as Aria, then set show_buttons: true with the 3 main buttons. The intro should be natural and vary — do not copy-paste any fixed template.
+If history has any messages, do NOT introduce yourself again. Just respond to what the user said.
 """
 
 _model = None
@@ -160,15 +159,7 @@ def _handle_action(action, action_data, phone, contact):
 
 
 def _fallback_menu(phone):
-    send_interactive_buttons(
-        phone,
-        "Hi! I'm Aria from Obsidyne 👋\n\nWe build high-performance apps and run data-driven digital marketing. How can I help you?",
-        [
-            {"id": "expertise",    "title": "Our Expertise"},
-            {"id": "works",        "title": "Our Portfolio"},
-            {"id": "call_request", "title": "Schedule a Call"},
-        ]
-    )
+    send_text(phone, "Sorry, I'm having a small hiccup right now. Please try again in a moment, or reach us directly at +91 7994324748.")
 
 
 def handle_faq(msg, contact):
