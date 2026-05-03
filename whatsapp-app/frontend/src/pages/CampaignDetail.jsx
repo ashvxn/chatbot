@@ -2,6 +2,13 @@ import { useEffect, useState } from "react";
 import api from "../api";
 import { useParams, useNavigate, Link } from "react-router-dom";
 
+function ReadReceipt({ status, style = {} }) {
+  if (status === 'read')      return <span className="read-ticks read"      style={style}>✓✓</span>;
+  if (status === 'delivered') return <span className="read-ticks delivered" style={style}>✓✓</span>;
+  if (status === 'sent')      return <span className="read-ticks sent"      style={style}>✓</span>;
+  return null;
+}
+
 export default function CampaignDetail() {
   const { id } = useParams();
   const [campaign, setCampaign] = useState(null);
@@ -60,26 +67,32 @@ export default function CampaignDetail() {
           <div>
             <h3 style={{ borderBottom: "1px solid var(--border)", paddingBottom: "10px", marginBottom: "20px" }}>Campaign Preview</h3>
             
-            <div style={{ 
-                background: "#e5ddd5", 
-                padding: "20px", 
-                borderRadius: "15px", 
+            <div style={{
+                background: "#e5ddd5",
+                padding: "20px",
+                borderRadius: "15px",
                 maxWidth: "400px",
                 boxShadow: "inset 0 0 10px rgba(0,0,0,0.1)",
                 position: "relative"
             }}>
-                <div style={{ 
-                    background: "white", 
-                    padding: "8px", 
-                    borderRadius: "8px", 
+                <div className="typing-bubble">
+                  <span className="typing-dot" />
+                  <span className="typing-dot" />
+                  <span className="typing-dot" />
+                </div>
+
+                <div style={{
+                    background: "white",
+                    padding: "8px",
+                    borderRadius: "8px",
                     boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
                     maxWidth: "100%"
                 }}>
                     {payload.image_url ? (
-                        <img 
-                            src={payload.image_url} 
-                            alt="Campaign Poster" 
-                            style={{ width: "100%", borderRadius: "5px", marginBottom: "8px", display: "block", background: "#f0f0f0", minHeight: "150px" }} 
+                        <img
+                            src={payload.image_url}
+                            alt="Campaign Poster"
+                            style={{ width: "100%", borderRadius: "5px", marginBottom: "8px", display: "block", background: "#f0f0f0", minHeight: "150px" }}
                             onError={(e) => {
                                 e.target.onerror = null;
                                 e.target.style.display = 'none';
@@ -92,7 +105,7 @@ export default function CampaignDetail() {
                         <div style={{ fontSize: "12px", color: "#666" }}>Poster Link: {payload.image_url}</div>
                         <div style={{ fontSize: "11px", color: "red", marginTop: "10px" }}>Image failed to load (Check tunnel visibility)</div>
                     </div>
-                    
+
                     <div style={{ padding: "5px 8px", fontSize: "14px", whiteSpace: "pre-wrap", color: "#111" }}>
                         {isTemplate && (
                             <div style={{ color: "var(--primary)", fontWeight: "bold", fontSize: "11px", marginBottom: "5px" }}>
@@ -100,6 +113,10 @@ export default function CampaignDetail() {
                             </div>
                         )}
                         {payload.message || "(No message text provided)"}
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "4px", padding: "2px 6px 4px", fontSize: "11px", color: "#aab8c2" }}>
+                        <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <ReadReceipt status={stats.read > 0 ? 'read' : stats.delivered > 0 ? 'delivered' : 'sent'} />
                     </div>
                 </div>
             </div>
@@ -144,7 +161,7 @@ export default function CampaignDetail() {
                          <span className={`badge badge-${r.status}`} style={{ fontSize: "10px", padding: "4px 8px" }}>
                            {r.status.toUpperCase()}
                          </span>
-                         {r.status === 'read' && <span style={{ marginLeft: "5px" }}>✅✅</span>}
+                         <ReadReceipt status={r.status} style={{ marginLeft: "5px" }} />
                       </td>
                     </tr>
                   ))}
