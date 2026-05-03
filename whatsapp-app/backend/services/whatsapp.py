@@ -83,15 +83,8 @@ def mark_as_read(message_id):
     payload = {
         "messaging_product": "whatsapp",
         "status": "read",
-        "message_id": message_id
-    }
-    send_api_request(payload)
-
-def send_typing_indicator(to):
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": to,
-        "type": "typing_on"
+        "message_id": message_id,
+        "typing_indicator": {"type": "text"}
     }
     send_api_request(payload)
 

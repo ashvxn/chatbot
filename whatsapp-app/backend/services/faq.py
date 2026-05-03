@@ -2,7 +2,7 @@ import os
 import json
 from google import genai
 from google.genai import types
-from services.whatsapp import send_text, send_interactive_buttons, send_typing_indicator
+from services.whatsapp import send_text, send_interactive_buttons
 from models import ConversationHistory, CallRequest
 from extensions import db
 
@@ -181,9 +181,6 @@ def handle_faq(msg, contact):
 
     try:
         client = _get_client()
-
-        # Show typing indicator while Gemini generates the response
-        send_typing_indicator(phone)
 
         # Load last 20 conversation turns (40 rows = 20 user+model pairs)
         history_rows = (
