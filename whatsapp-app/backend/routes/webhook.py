@@ -1,5 +1,6 @@
 from flask import Blueprint, request, current_app, g
 from services.faq import handle_faq
+from services.whatsapp import mark_as_read
 from extensions import db
 from models import CampaignRecipient, Contact
 
@@ -35,7 +36,11 @@ def receive():
                 for msg in messages:
                     sender_phone = msg.get("from")
                     profile_name = value.get("contacts", [{}])[0].get("profile", {}).get("name", "New Lead")
-                    
+
+                    # Mark incoming message as read (blue ticks)
+                    if msg.get("id"):
+                        mark_as_read(msg["id"])
+
                     # Auto-Lead Capture
                     existing = Contact.query.filter_by(phone=sender_phone).first()
                     if not existing:

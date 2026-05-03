@@ -79,6 +79,22 @@ def send_interactive_buttons(to, text, buttons):
     }
     return send_api_request(payload)
 
+def mark_as_read(message_id):
+    payload = {
+        "messaging_product": "whatsapp",
+        "status": "read",
+        "message_id": message_id
+    }
+    send_api_request(payload)
+
+def send_typing_indicator(to):
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": to,
+        "type": "typing_on"
+    }
+    send_api_request(payload)
+
 def send_list_message(to, text, button_text, sections):
     """
     Sends a list message (up to 10 options).
