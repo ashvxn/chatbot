@@ -2,10 +2,22 @@ import { useEffect, useState } from "react";
 import api from "../api";
 import { useParams, useNavigate, Link } from "react-router-dom";
 
+const Icons = {
+  ChevronLeft: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+  ),
+  Check: () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+  ),
+  CheckCircle: () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+  )
+};
+
 function ReadReceipt({ status, style = {} }) {
-  if (status === 'read')      return <span className="read-ticks read"      style={style}>✓✓</span>;
-  if (status === 'delivered') return <span className="read-ticks delivered" style={style}>✓✓</span>;
-  if (status === 'sent')      return <span className="read-ticks sent"      style={style}>✓</span>;
+  if (status === 'read')      return <span className="read-ticks read"      style={{ color: "#34b7f1", ...style }}><Icons.CheckCircle /><Icons.CheckCircle style={{marginLeft: "-8px"}} /></span>;
+  if (status === 'delivered') return <span className="read-ticks delivered" style={{ color: "#94a3b8", ...style }}><Icons.CheckCircle /><Icons.CheckCircle style={{marginLeft: "-8px"}} /></span>;
+  if (status === 'sent')      return <span className="read-ticks sent"      style={{ color: "#94a3b8", ...style }}><Icons.Check /></span>;
   return null;
 }
 
@@ -31,7 +43,7 @@ export default function CampaignDetail() {
     return () => clearInterval(interval);
   }, [id]);
 
-  if (loading && !campaign) return <p>Loading campaign details...</p>;
+  if (loading && !campaign) return <div style={{ display: "flex", justifyContent: "center", padding: "100px" }}><p>Loading campaign details...</p></div>;
   if (!campaign) return null;
 
   const recipients = campaign.recipients || [];
@@ -46,131 +58,117 @@ export default function CampaignDetail() {
 
   return (
     <div>
-      <div style={{ marginBottom: "20px" }}>
-        <Link to="/campaigns" style={{ color: "var(--primary)", fontWeight: "bold" }}>← Back to Campaigns</Link>
+      <div style={{ marginBottom: "24px" }}>
+        <Link to="/campaigns" style={{ display: "flex", alignItems: "center", gap: "4px", color: "var(--text-muted)", fontSize: "14px", fontWeight: "500" }}>
+          <Icons.ChevronLeft /> Back to Campaigns
+        </Link>
       </div>
 
-      <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "30px" }}>
-          <div>
-            <h1 style={{ marginBottom: "5px" }}>{isTemplate ? "Meta Template Campaign" : "Custom Direct Campaign"}</h1>
-            <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>Campaign ID: #{campaign.id} • {campaign.template_name}</p>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <span className={`badge badge-${campaign.status || 'unknown'}`} style={{ padding: "8px 16px", fontSize: "14px" }}>
-                {(campaign.status || 'SCHEDULED').toUpperCase()}
-            </span>
-          </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "32px" }}>
+        <div>
+          <h1 style={{ marginBottom: "4px" }}>{isTemplate ? "Template Campaign" : "Custom Campaign"}</h1>
+          <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>
+            Campaign ID: <strong>#{campaign.id}</strong> • Template: <strong>{campaign.template_name}</strong>
+          </p>
         </div>
+        <span className={`badge badge-${campaign.status || 'unknown'}`} style={{ padding: "6px 16px", fontSize: "12px" }}>
+          {campaign.status}
+        </span>
+      </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "40px" }}>
-          <div>
-            <h3 style={{ borderBottom: "1px solid var(--border)", paddingBottom: "10px", marginBottom: "20px" }}>Campaign Preview</h3>
-            
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr", gap: "32px" }}>
+        <div className="flex-col" style={{ gap: "32px" }}>
+          <div className="card">
+            <h3 style={{ fontSize: "16px", marginBottom: "20px" }}>Preview</h3>
             <div style={{
-                background: "#e5ddd5",
+                background: "#efe7de",
                 padding: "20px",
-                borderRadius: "15px",
-                maxWidth: "400px",
-                boxShadow: "inset 0 0 10px rgba(0,0,0,0.1)",
-                position: "relative"
+                borderRadius: "12px",
+                position: "relative",
+                backgroundImage: "url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')",
+                backgroundSize: "contain"
             }}>
-                <div className="typing-bubble">
-                  <span className="typing-dot" />
-                  <span className="typing-dot" />
-                  <span className="typing-dot" />
-                </div>
-
                 <div style={{
                     background: "white",
-                    padding: "8px",
+                    padding: "6px",
                     borderRadius: "8px",
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
-                    maxWidth: "100%"
+                    boxShadow: "0 1px 0.5px rgba(0,0,0,0.13)",
+                    maxWidth: "90%"
                 }}>
-                    {payload.image_url ? (
+                    {payload.image_url && (
                         <img
                             src={payload.image_url}
-                            alt="Campaign Poster"
-                            style={{ width: "100%", borderRadius: "5px", marginBottom: "8px", display: "block", background: "#f0f0f0", minHeight: "150px" }}
-                            onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.style.display = 'none';
-                                e.target.nextSibling.style.display = 'block';
-                            }}
+                            alt=""
+                            style={{ width: "100%", borderRadius: "6px", marginBottom: "4px", display: "block" }}
                         />
-                    ) : null}
-                    <div style={{ display: "none", padding: "40px 20px", background: "#eee", borderRadius: "5px", textAlign: "center", marginBottom: "8px" }}>
-                        <div style={{ fontSize: "30px" }}>📷</div>
-                        <div style={{ fontSize: "12px", color: "#666" }}>Poster Link: {payload.image_url}</div>
-                        <div style={{ fontSize: "11px", color: "red", marginTop: "10px" }}>Image failed to load (Check tunnel visibility)</div>
-                    </div>
-
-                    <div style={{ padding: "5px 8px", fontSize: "14px", whiteSpace: "pre-wrap", color: "#111" }}>
+                    )}
+                    <div style={{ padding: "4px 8px 0", fontSize: "14px", whiteSpace: "pre-wrap", color: "#111" }}>
                         {isTemplate && (
-                            <div style={{ color: "var(--primary)", fontWeight: "bold", fontSize: "11px", marginBottom: "5px" }}>
-                                [META TEMPLATE: {campaign.template_name}]
+                            <div style={{ color: "var(--primary)", fontWeight: "700", fontSize: "11px", marginBottom: "2px", textTransform: "uppercase" }}>
+                                {campaign.template_name}
                             </div>
                         )}
-                        {payload.message || "(No message text provided)"}
+                        {payload.message || "(No message content)"}
                     </div>
-                    <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "4px", padding: "2px 6px 4px", fontSize: "11px", color: "#aab8c2" }}>
+                    <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "4px", padding: "0 4px 4px", fontSize: "10px", color: "#667781" }}>
                         <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         <ReadReceipt status={stats.read > 0 ? 'read' : stats.delivered > 0 ? 'delivered' : 'sent'} />
                     </div>
                 </div>
             </div>
+          </div>
 
-            <div style={{ marginTop: "30px" }}>
-                <h3 style={{ borderBottom: "1px solid var(--border)", paddingBottom: "10px", marginBottom: "15px" }}>Campaign Stats</h3>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "15px" }}>
-                    <div className="card" style={{ textAlign: "center", padding: "15px", background: "var(--bg-light)" }}>
-                        <div style={{ fontSize: "24px", fontWeight: "bold" }}>{stats.sent}</div>
-                        <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>Sent</div>
-                    </div>
-                    <div className="card" style={{ textAlign: "center", padding: "15px", background: "var(--bg-light)" }}>
-                        <div style={{ fontSize: "24px", fontWeight: "bold", color: "var(--secondary)" }}>{stats.delivered}</div>
-                        <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>Delivered</div>
-                    </div>
-                    <div className="card" style={{ textAlign: "center", padding: "15px", background: "var(--bg-light)" }}>
-                        <div style={{ fontSize: "24px", fontWeight: "bold", color: "var(--primary)" }}>{stats.read}</div>
-                        <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>Read (Seen)</div>
-                    </div>
+          <div className="card">
+            <h3 style={{ fontSize: "16px", marginBottom: "20px" }}>Performance Metrics</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
+                <div style={{ textAlign: "center", padding: "16px", background: "var(--bg-main)", borderRadius: "var(--radius)" }}>
+                    <div style={{ fontSize: "20px", fontWeight: "700" }}>{stats.sent}</div>
+                    <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", marginTop: "4px" }}>Sent</div>
+                </div>
+                <div style={{ textAlign: "center", padding: "16px", background: "var(--bg-main)", borderRadius: "var(--radius)" }}>
+                    <div style={{ fontSize: "20px", fontWeight: "700", color: "var(--secondary)" }}>{stats.delivered}</div>
+                    <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", marginTop: "4px" }}>Delivered</div>
+                </div>
+                <div style={{ textAlign: "center", padding: "16px", background: "var(--bg-main)", borderRadius: "var(--radius)" }}>
+                    <div style={{ fontSize: "20px", fontWeight: "700", color: "var(--primary)" }}>{stats.read}</div>
+                    <div style={{ fontSize: "11px", color: "var(--text-muted)", textTransform: "uppercase", marginTop: "4px" }}>Read</div>
                 </div>
             </div>
           </div>
+        </div>
 
-          <div>
-            <h3 style={{ borderBottom: "1px solid var(--border)", paddingBottom: "10px", marginBottom: "20px" }}>Recipients List</h3>
-            <div style={{ maxHeight: "600px", overflowY: "auto", border: "1px solid var(--border)", borderRadius: "var(--radius)" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-                <thead style={{ position: "sticky", top: 0, background: "white", zIndex: 1 }}>
-                  <tr style={{ borderBottom: "2px solid var(--border)", color: "var(--text-muted)", fontSize: "13px" }}>
-                    <th style={{ padding: "12px" }}>Contact</th>
-                    <th style={{ padding: "12px" }}>Status</th>
+        <div className="card" style={{ display: "flex", flexDirection: "column" }}>
+          <h3 style={{ fontSize: "16px", marginBottom: "20px" }}>Recipient Delivery Status</h3>
+          <div className="table-wrapper" style={{ flex: 1, maxHeight: "600px" }}>
+            <table style={{ border: "none" }}>
+              <thead style={{ position: "sticky", top: 0, zIndex: 1 }}>
+                <tr>
+                  <th style={{ background: "var(--white)" }}>Contact</th>
+                  <th style={{ background: "var(--white)" }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recipients.map((r, i) => (
+                  <tr key={i}>
+                    <td>
+                      <div style={{ fontWeight: "600" }}>{r.contact_name}</div>
+                      <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>{r.phone}</div>
+                    </td>
+                    <td>
+                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span className={`badge badge-${r.status}`} style={{ fontSize: "10px" }}>
+                          {r.status}
+                        </span>
+                        <ReadReceipt status={r.status} />
+                       </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {recipients.map((r, i) => (
-                    <tr key={i} style={{ borderBottom: "1px solid var(--border)", fontSize: "14px" }}>
-                      <td style={{ padding: "12px" }}>
-                        <div style={{ fontWeight: "600" }}>{r.contact_name}</div>
-                        <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>{r.phone}</div>
-                      </td>
-                      <td style={{ padding: "12px" }}>
-                         <span className={`badge badge-${r.status}`} style={{ fontSize: "10px", padding: "4px 8px" }}>
-                           {r.status.toUpperCase()}
-                         </span>
-                         <ReadReceipt status={r.status} style={{ marginLeft: "5px" }} />
-                      </td>
-                    </tr>
-                  ))}
-                  {recipients.length === 0 && (
-                    <tr><td colSpan="2" style={{ padding: "30px", textAlign: "center", color: "var(--text-muted)" }}>Waiting for campaign to start...</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                ))}
+                {recipients.length === 0 && (
+                  <tr><td colSpan="2" style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>Initializing delivery...</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
