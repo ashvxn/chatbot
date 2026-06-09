@@ -78,13 +78,17 @@ def create_app():
     # ✅ CREATE TABLES
     with app.app_context():
         db.create_all()
-        # Migrate existing DBs: add created_at if missing
+        # Migrate existing DBs: add created_at to campaign if missing
         try:
             with db.engine.connect() as conn:
-                conn.execute(text("ALTER TABLE campaign ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"))
-                conn.commit()
-        except Exception:
-            pass
+                result = conn.execute(text("PRAGMA table_info(campaign)"))
+                existing_columns = [row[1] for row in result.fetchall()]
+                if 'created_at' not in existing_columns:
+                    conn.execute(text("ALTER TABLE campaign ADD COLUMN created_at DATETIME"))
+                    conn.commit()
+                    print("Migration: added created_at column to campaign table")
+        except Exception as e:
+            print(f"Migration error: {e}")
 
     # ✅ START SCHEDULER
     from services.scheduler import start_scheduler
