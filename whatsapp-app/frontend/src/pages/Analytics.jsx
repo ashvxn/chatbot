@@ -109,47 +109,32 @@ function TrendChart({ data }) {
       </div>
     );
   }
-
   const maxSent = Math.max(...data.map(d => d.sent), 1);
 
   return (
     <div>
       <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
-        {[
-          { color: "rgba(18,140,126,0.25)", label: "Sent" },
-          { color: "#128c7e",               label: "Read" },
-        ].map(l => (
+        {[{ color: "rgba(18,140,126,0.25)", label: "Sent" }, { color: "#128c7e", label: "Read" }].map(l => (
           <div key={l.label} style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "var(--text-muted)" }}>
             <div style={{ width: "12px", height: "10px", borderRadius: "2px", background: l.color }} />
             {l.label}
           </div>
         ))}
       </div>
-
       <div style={{ display: "flex", gap: "6px", alignItems: "flex-end", height: "130px", overflowX: "auto", paddingBottom: "28px" }}>
         {data.map((d, i) => (
           <div key={i} style={{ flex: "1", minWidth: "26px", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", height: "100%" }}>
             <div style={{ flex: 1, width: "100%", display: "flex", alignItems: "flex-end", gap: "2px" }}>
               <div
                 title={`Sent: ${d.sent}`}
-                style={{
-                  flex: 1, background: "rgba(18,140,126,0.2)", borderRadius: "3px 3px 0 0",
-                  height: `${(d.sent / maxSent) * 100}%`, minHeight: d.sent > 0 ? "4px" : 0
-                }}
+                style={{ flex: 1, background: "rgba(18,140,126,0.2)", borderRadius: "3px 3px 0 0", height: `${(d.sent / maxSent) * 100}%`, minHeight: d.sent > 0 ? "4px" : 0 }}
               />
               <div
                 title={`Read: ${d.read}`}
-                style={{
-                  flex: 1, background: "#128c7e", borderRadius: "3px 3px 0 0",
-                  height: `${(d.read / maxSent) * 100}%`, minHeight: d.read > 0 ? "4px" : 0
-                }}
+                style={{ flex: 1, background: "#128c7e", borderRadius: "3px 3px 0 0", height: `${(d.read / maxSent) * 100}%`, minHeight: d.read > 0 ? "4px" : 0 }}
               />
             </div>
-            <div style={{
-              fontSize: "9px", color: "var(--text-muted)", whiteSpace: "nowrap",
-              transform: "rotate(-45deg)", transformOrigin: "top center",
-              marginTop: "4px", width: "28px", textAlign: "center"
-            }}>
+            <div style={{ fontSize: "9px", color: "var(--text-muted)", whiteSpace: "nowrap", transform: "rotate(-45deg)", transformOrigin: "top center", marginTop: "4px", width: "28px", textAlign: "center" }}>
               {d.date?.slice(5)}
             </div>
           </div>
@@ -174,8 +159,8 @@ function RateBar({ pct }) {
 
 // ── Main ───────────────────────────────────────────────────────
 export default function Analytics() {
-  const [data, setData]           = useState(null);
-  const [loading, setLoading]     = useState(true);
+  const [data, setData]               = useState(null);
+  const [loading, setLoading]         = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [refreshing, setRefreshing]   = useState(false);
 
@@ -198,9 +183,7 @@ export default function Analytics() {
       Loading analytics...
     </div>
   );
-  if (!data) return (
-    <div className="card" style={{ textAlign: "center", padding: "40px" }}>No data available.</div>
-  );
+  if (!data) return <div className="card" style={{ textAlign: "center", padding: "40px" }}>No data available.</div>;
 
   const { kpis, campaign_status, breakdown, top_campaigns, daily_trend, funnel } = data;
 
@@ -208,14 +191,10 @@ export default function Analytics() {
     label: cat.charAt(0).toUpperCase() + cat.slice(1),
     value: v.spend,
     color: CAT_COLORS[cat] || "#94a3b8",
-    sent:  v.sent,
-    read:  v.read,
   }));
   const totalCatSpend = donutSegments.reduce((s, d) => s + d.value, 0);
-
-  const statusTotal = Object.values(campaign_status).reduce((s, v) => s + v, 0);
-
-  const funnelPct = (n) => funnel.sent > 0 ? Math.round(n / funnel.sent * 100) : 0;
+  const statusTotal   = Object.values(campaign_status).reduce((s, v) => s + v, 0);
+  const funnelPct     = (n) => funnel.sent > 0 ? Math.round(n / funnel.sent * 100) : 0;
 
   return (
     <div>
@@ -242,12 +221,12 @@ export default function Analytics() {
 
       {/* ── KPI Row ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "16px", marginBottom: "24px" }}>
-        <KPICard icon={<Ic.Wallet />}   label="Total Spend"       value={`$${kpis.total_spend}`}              sub="Estimated cost to date"                    color="#128c7e" bg="rgba(18,140,126,0.1)" />
-        <KPICard icon={<Ic.Activity />} label="Campaigns Run"     value={kpis.total_campaigns}                sub="Completed + partial"                       color="#8b5cf6" bg="rgba(139,92,246,0.1)" />
-        <KPICard icon={<Ic.Send />}     label="Messages Sent"     value={kpis.total_sent.toLocaleString()}    sub={`${kpis.total_delivered.toLocaleString()} delivered`} color="#0ea5e9" bg="rgba(14,165,233,0.1)" />
-        <KPICard icon={<Ic.Eye />}      label="Read Rate"         value={`${kpis.read_rate}%`}               sub={`${kpis.total_read.toLocaleString()} reads`} color="#f59e0b" bg="rgba(245,158,11,0.1)" />
-        <KPICard icon={<Ic.Target />}   label="Delivery Rate"     value={`${kpis.delivery_rate}%`}           sub="Sent → Delivered"                          color="#ec4899" bg="rgba(236,72,153,0.1)" />
-        <KPICard icon={<Ic.Users />}    label="Active Contacts"   value={kpis.active_contacts.toLocaleString()} sub="Opted in"                               color="#64748b" bg="rgba(100,116,139,0.1)" />
+        <KPICard icon={<Ic.Wallet />}   label="Total Spend"     value={"₹" + kpis.total_spend}              sub="Estimated cost to date"                      color="#128c7e" bg="rgba(18,140,126,0.1)" />
+        <KPICard icon={<Ic.Activity />} label="Campaigns Run"   value={kpis.total_campaigns}                sub="Completed + partial"                         color="#8b5cf6" bg="rgba(139,92,246,0.1)" />
+        <KPICard icon={<Ic.Send />}     label="Messages Sent"   value={kpis.total_sent.toLocaleString()}    sub={kpis.total_delivered.toLocaleString() + " delivered"} color="#0ea5e9" bg="rgba(14,165,233,0.1)" />
+        <KPICard icon={<Ic.Eye />}      label="Read Rate"       value={kpis.read_rate + "%"}                sub={kpis.total_read.toLocaleString() + " reads"}  color="#f59e0b" bg="rgba(245,158,11,0.1)" />
+        <KPICard icon={<Ic.Target />}   label="Delivery Rate"   value={kpis.delivery_rate + "%"}           sub="Sent → Delivered"                            color="#ec4899" bg="rgba(236,72,153,0.1)" />
+        <KPICard icon={<Ic.Users />}    label="Active Contacts" value={kpis.active_contacts.toLocaleString()} sub="Opted in"                                 color="#64748b" bg="rgba(100,116,139,0.1)" />
       </div>
 
       {/* ── Funnel + Status ── */}
@@ -257,12 +236,12 @@ export default function Analytics() {
             <span style={{ color: "var(--primary)" }}><Ic.Zap /></span>
             <h3 style={{ fontSize: "15px", fontWeight: "700", margin: 0 }}>Delivery Funnel</h3>
           </div>
-          <FunnelStage label="Sent"      value={funnel.sent}      pct={100}                  color="#0ea5e9" />
-          <FunnelStage label="Delivered" value={funnel.delivered} pct={funnelPct(funnel.delivered)} color="#128c7e" />
-          <FunnelStage label="Read"      value={funnel.read}      pct={funnelPct(funnel.read)}      color="#8b5cf6" />
+          <FunnelStage label="Sent"      value={funnel.sent}      pct={100}                           color="#0ea5e9" />
+          <FunnelStage label="Delivered" value={funnel.delivered} pct={funnelPct(funnel.delivered)}   color="#128c7e" />
+          <FunnelStage label="Read"      value={funnel.read}      pct={funnelPct(funnel.read)}        color="#8b5cf6" />
           <div style={{ marginTop: "16px", padding: "10px 14px", background: "var(--bg-main)", borderRadius: "var(--radius)", fontSize: "13px", color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
             <span>Cost per read</span>
-            <strong style={{ color: "var(--text-main)" }}>${kpis.cost_per_read}</strong>
+            <strong style={{ color: "var(--text-main)" }}>₹{kpis.cost_per_read}</strong>
           </div>
         </div>
 
@@ -314,9 +293,7 @@ export default function Analytics() {
               <tbody>
                 {top_campaigns.length === 0 ? (
                   <tr>
-                    <td colSpan="6" style={{ textAlign: "center", padding: "32px", color: "var(--text-muted)" }}>
-                      No completed campaigns yet
-                    </td>
+                    <td colSpan="6" style={{ textAlign: "center", padding: "32px", color: "var(--text-muted)" }}>No completed campaigns yet</td>
                   </tr>
                 ) : (
                   top_campaigns.map(c => (
@@ -331,7 +308,7 @@ export default function Analytics() {
                       <td style={{ textAlign: "center", fontWeight: "600", color: "#0ea5e9" }}>{c.delivered.toLocaleString()}</td>
                       <td style={{ textAlign: "center", fontWeight: "600", color: "var(--primary)" }}>{c.read.toLocaleString()}</td>
                       <td><RateBar pct={c.read_rate} /></td>
-                      <td style={{ textAlign: "right", fontWeight: "700", fontSize: "13px" }}>${c.cost}</td>
+                      <td style={{ textAlign: "right", fontWeight: "700", fontSize: "13px" }}>₹{c.cost}</td>
                     </tr>
                   ))
                 )}
@@ -345,15 +322,11 @@ export default function Analytics() {
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "20px" }}>
             <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
               <DonutChart segments={donutSegments} size={160} thickness={26} />
-              <div style={{
-                position: "absolute", inset: 0, display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center", pointerEvents: "none"
-              }}>
-                <div style={{ fontSize: "17px", fontWeight: "800" }}>${totalCatSpend.toFixed(2)}</div>
+              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                <div style={{ fontSize: "17px", fontWeight: "800" }}>₹{totalCatSpend.toFixed(2)}</div>
                 <div style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Total</div>
               </div>
             </div>
-
             <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "10px" }}>
               {donutSegments.length === 0 ? (
                 <p style={{ color: "var(--text-muted)", textAlign: "center", fontSize: "13px" }}>No spend data</p>
@@ -363,16 +336,13 @@ export default function Analytics() {
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
                       <div style={{ width: "10px", height: "10px", borderRadius: "2px", background: seg.color, flexShrink: 0 }} />
                       <span style={{ flex: 1, fontSize: "13px", fontWeight: "500" }}>{seg.label}</span>
-                      <span style={{ fontWeight: "700", fontSize: "13px" }}>${seg.value.toFixed(3)}</span>
+                      <span style={{ fontWeight: "700", fontSize: "13px" }}>₹{seg.value.toFixed(2)}</span>
                       <span style={{ fontSize: "11px", color: "var(--text-muted)", minWidth: "30px", textAlign: "right" }}>
                         {totalCatSpend > 0 ? Math.round(seg.value / totalCatSpend * 100) : 0}%
                       </span>
                     </div>
                     <div style={{ height: "3px", background: "var(--bg-main)", borderRadius: "2px", overflow: "hidden" }}>
-                      <div style={{
-                        width: `${totalCatSpend > 0 ? (seg.value / totalCatSpend) * 100 : 0}%`,
-                        height: "100%", background: seg.color, borderRadius: "2px"
-                      }} />
+                      <div style={{ width: `${totalCatSpend > 0 ? (seg.value / totalCatSpend) * 100 : 0}%`, height: "100%", background: seg.color, borderRadius: "2px" }} />
                     </div>
                   </div>
                 ))

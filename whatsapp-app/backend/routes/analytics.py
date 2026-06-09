@@ -25,24 +25,34 @@ def get_overview():
     campaign_status = {s: c for s, c in status_rows}
 
     # ── Spend + reach by category ─────────────────────────────
-    cat_rows = db.session.query(
+    # Spend queried from Campaign table only (avoids multiplying by recipient count)
+    cat_spend_rows = db.session.query(
         Campaign.category,
         func.sum(Campaign.total_estimated_cost).label('spend'),
-        func.count(func.distinct(Campaign.id)).label('campaigns'),
-        func.count(CampaignRecipient.id).label('sent'),
-        func.sum(case((CampaignRecipient.status == 'read', 1), else_=0)).label('read')
-    ).outerjoin(CampaignRecipient, Campaign.id == CampaignRecipient.campaign_id
+        func.count(Campaign.id).label('campaigns')
     ).filter(Campaign.status.in_(['completed', 'partial'])
     ).group_by(Campaign.category).all()
 
+    # Recipient stats joined separately
+    cat_stat_rows = db.session.query(
+        Campaign.category,
+        func.count(CampaignRecipient.id).label('sent'),
+        func.sum(case((CampaignRecipient.status == 'read', 1), else_=0)).label('read')
+    ).join(Campaign, CampaignRecipient.campaign_id == Campaign.id
+    ).filter(Campaign.status.in_(['completed', 'partial'])
+    ).group_by(Campaign.category).all()
+
+    cat_stats = {r.category: {"sent": r.sent or 0, "read": r.read or 0} for r in cat_stat_rows}
+
     breakdown = {}
-    for row in cat_rows:
+    for row in cat_spend_rows:
         cat = row.category or 'other'
+        stats = cat_stats.get(cat, {"sent": 0, "read": 0})
         breakdown[cat] = {
-            "spend":     round(float(row.spend or 0), 3),
+            "spend":     round(float(row.spend or 0), 2),
             "campaigns": row.campaigns or 0,
-            "sent":      row.sent or 0,
-            "read":      row.read or 0
+            "sent":      stats["sent"],
+            "read":      stats["read"]
         }
 
     # ── Top 10 campaigns by reach ─────────────────────────────
@@ -76,26 +86,39 @@ def get_overview():
 
     # ── Daily trend – last 30 days ────────────────────────────
     since = datetime.utcnow() - timedelta(days=30)
-    trend_rows = db.session.query(
+
+    # Spend per day from Campaign table only
+    trend_spend_rows = db.session.query(
         func.strftime('%Y-%m-%d', Campaign.created_at).label('date'),
         func.sum(Campaign.total_estimated_cost).label('spend'),
-        func.count(func.distinct(Campaign.id)).label('campaigns'),
-        func.count(CampaignRecipient.id).label('sent'),
-        func.sum(case((CampaignRecipient.status == 'read', 1), else_=0)).label('read')
-    ).outerjoin(CampaignRecipient, Campaign.id == CampaignRecipient.campaign_id
+        func.count(Campaign.id).label('campaigns')
     ).filter(
         Campaign.created_at.isnot(None),
         Campaign.created_at >= since,
         Campaign.status.in_(['completed', 'partial'])
     ).group_by('date').order_by('date').all()
 
+    # Recipient counts per day joined separately
+    trend_stat_rows = db.session.query(
+        func.strftime('%Y-%m-%d', Campaign.created_at).label('date'),
+        func.count(CampaignRecipient.id).label('sent'),
+        func.sum(case((CampaignRecipient.status == 'read', 1), else_=0)).label('read')
+    ).join(Campaign, CampaignRecipient.campaign_id == Campaign.id
+    ).filter(
+        Campaign.created_at.isnot(None),
+        Campaign.created_at >= since,
+        Campaign.status.in_(['completed', 'partial'])
+    ).group_by('date').all()
+
+    trend_stats = {r.date: {"sent": r.sent or 0, "read": r.read or 0} for r in trend_stat_rows}
+
     daily_trend = [{
         "date":      row.date,
-        "spend":     round(float(row.spend or 0), 3),
+        "spend":     round(float(row.spend or 0), 2),
         "campaigns": row.campaigns or 0,
-        "sent":      row.sent or 0,
-        "read":      row.read or 0
-    } for row in trend_rows]
+        "sent":      trend_stats.get(row.date, {}).get("sent", 0),
+        "read":      trend_stats.get(row.date, {}).get("read", 0)
+    } for row in trend_spend_rows]
 
     return jsonify({
         "kpis": {
