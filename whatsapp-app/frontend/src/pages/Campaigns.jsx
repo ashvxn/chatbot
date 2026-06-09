@@ -154,7 +154,9 @@ export default function Campaigns() {
                   </td>
                   <td style={{ color: "var(--text-muted)", fontSize: "13px" }}>
                     {(() => {
-                      const d = new Date(c.created_at || c.scheduled_at);
+                      const raw = c.created_at || c.scheduled_at;
+                      if (!raw) return "—";
+                      const d = new Date(raw);
                       if (isNaN(d)) return "—";
                       return (
                         <>
