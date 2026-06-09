@@ -114,6 +114,7 @@ export default function Campaigns() {
               <option value="scheduled">Scheduled</option>
               <option value="processing">Processing</option>
               <option value="completed">Completed</option>
+              <option value="partial">Partial</option>
               <option value="failed">Failed</option>
             </select>
           </div>
@@ -152,8 +153,16 @@ export default function Campaigns() {
                     </div>
                   </td>
                   <td style={{ color: "var(--text-muted)", fontSize: "13px" }}>
-                    {new Date(c.scheduled_at).toLocaleDateString()}
-                    <div style={{ fontSize: "11px" }}>{new Date(c.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    {(() => {
+                      const d = new Date(c.created_at || c.scheduled_at);
+                      if (isNaN(d)) return "—";
+                      return (
+                        <>
+                          {d.toLocaleDateString()}
+                          <div style={{ fontSize: "11px" }}>{d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        </>
+                      );
+                    })()}
                   </td>
                   <td>
                     <span className={`badge badge-${c.status || 'unknown'}`}>{c.status}</span>

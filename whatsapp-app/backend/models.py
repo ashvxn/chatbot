@@ -14,6 +14,7 @@ class Campaign(db.Model):
     template_name = db.Column(db.String(100))
     payload = db.Column(db.JSON)
     scheduled_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(20), default="scheduled")
     category = db.Column(db.String(20), default="marketing") # marketing, utility, service
     total_estimated_cost = db.Column(db.Float, default=0.0)

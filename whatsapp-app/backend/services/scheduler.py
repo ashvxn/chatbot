@@ -42,17 +42,21 @@ def process_campaigns(app):
                         
                         contacts = query.all()
                         total_campaign_cost = 0.0
+                        sent_count = 0
+                        failed_count = 0
                         is_custom = campaign.template_name.startswith("CUSTOM_")
                         category = "service" if is_custom else "marketing"
+                        template_name = campaign.template_name
+
                         def send_to_contact(contact):
                             with app.app_context():
                                 cost = get_conversation_cost(contact.phone, category)
-                                if campaign.template_name == "CUSTOM_TEXT":
+                                if template_name == "CUSTOM_TEXT":
                                     response = send_text(contact.phone, message)
-                                elif campaign.template_name == "CUSTOM_IMAGE":
+                                elif template_name == "CUSTOM_IMAGE":
                                     response = send_image(contact.phone, image_url, caption=message)
                                 else:
-                                    response = send_template(contact.phone, campaign.template_name, image_url,message)
+                                    response = send_template(contact.phone, template_name, image_url, message)
                                 msg_id = extract_message_id(response)
                                 return contact.id, msg_id, cost
 
@@ -63,6 +67,7 @@ def process_campaigns(app):
                                     contact_id, msg_id, cost = future.result()
                                     total_campaign_cost += cost
                                     if msg_id:
+                                        sent_count += 1
                                         recipient = CampaignRecipient(
                                             campaign_id=campaign.id,
                                             contact_id=contact_id,
@@ -71,11 +76,19 @@ def process_campaigns(app):
                                             estimated_cost=cost
                                         )
                                         db.session.add(recipient)
+                                    else:
+                                        failed_count += 1
                                 except Exception as e:
+                                    failed_count += 1
                                     print(f"Failed to send to contact: {e}")
-                        
+
                         campaign.total_estimated_cost = total_campaign_cost
-                        campaign.status = "completed"
+                        if sent_count == 0 and failed_count > 0:
+                            campaign.status = "failed"
+                        elif failed_count > 0:
+                            campaign.status = "partial"
+                        else:
+                            campaign.status = "completed"
                     except Exception as e:
                         print(f"Error processing campaign {campaign.id}: {e}")
                         campaign.status = "failed"

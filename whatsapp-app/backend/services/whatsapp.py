@@ -1,3 +1,4 @@
+import time
 import requests
 from flask import current_app, g
 
@@ -11,13 +12,20 @@ def get_url():
     phone_id = getattr(g, 'current_phone_id', None) or current_app.config['PHONE_NUMBER_ID']
     return f"https://graph.facebook.com/v21.0/{phone_id}/messages"
 
-def send_api_request(payload):
+def send_api_request(payload, retries=3):
     url = get_url()
     headers = get_headers()
     print(f"DEBUG: Sending message from Phone ID: {url.split('/')[-2]}")
-    response = requests.post(url, json=payload, headers=headers)
-    print(f"DEBUG: WhatsApp API Status: {response.status_code}")
-    print(f"DEBUG: Response: {response.text}")
+    for attempt in range(retries):
+        response = requests.post(url, json=payload, headers=headers)
+        print(f"DEBUG: WhatsApp API Status: {response.status_code}")
+        print(f"DEBUG: Response: {response.text}")
+        if response.status_code == 429:
+            wait = 2 ** attempt  # 1s, 2s, 4s
+            print(f"Rate limited. Retrying in {wait}s...")
+            time.sleep(wait)
+            continue
+        return response
     return response
 
 def send_template(to, template_name, image_url=None, body_text=None):

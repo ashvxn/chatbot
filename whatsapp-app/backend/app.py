@@ -2,6 +2,7 @@ from flask import Flask, send_from_directory, make_response, request, jsonify
 from flask_cors import CORS
 from config import Config
 from extensions import db
+from sqlalchemy import text
 import os
 import mimetypes
 
@@ -77,6 +78,13 @@ def create_app():
     # ✅ CREATE TABLES
     with app.app_context():
         db.create_all()
+        # Migrate existing DBs: add created_at if missing
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(text("ALTER TABLE campaign ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"))
+                conn.commit()
+        except Exception:
+            pass
 
     # ✅ START SCHEDULER
     from services.scheduler import start_scheduler

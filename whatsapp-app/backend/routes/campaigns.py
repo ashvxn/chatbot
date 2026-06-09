@@ -25,6 +25,7 @@ def get_campaigns():
             "template_name": c.template_name,
             "payload": c.payload,
             "scheduled_at": c.scheduled_at.isoformat() if c.scheduled_at else None,
+            "created_at": c.created_at.isoformat() if c.created_at else None,
             "status": c.status,
             "stats": {"sent": total_sent, "read": total_read}
         })
