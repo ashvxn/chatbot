@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from extensions import db
-from models import Contact
+from models import Contact, CallRequest
 
 contacts_bp = Blueprint("contacts", __name__, url_prefix="/api/contacts")
 
@@ -8,13 +8,27 @@ contacts_bp = Blueprint("contacts", __name__, url_prefix="/api/contacts")
 @contacts_bp.route("", methods=["GET"])
 def get_contacts():
     contacts = Contact.query.all()
+
+    # Build phone → latest CallRequest map
+    call_rows = CallRequest.query.order_by(CallRequest.created_at.desc()).all()
+    call_map = {}
+    for cr in call_rows:
+        if cr.phone not in call_map:
+            call_map[cr.phone] = {
+                "caller_name":    cr.caller_name,
+                "preferred_time": cr.preferred_time,
+                "status":         cr.status,
+                "created_at":     cr.created_at.isoformat() if cr.created_at else None
+            }
+
     return jsonify([
         {
-            "id": c.id,
-            "name": c.name,
-            "phone": c.phone,
-            "opted_in": c.opted_in,
-            "tags": c.tags
+            "id":           c.id,
+            "name":         c.name,
+            "phone":        c.phone,
+            "opted_in":     c.opted_in,
+            "tags":         c.tags,
+            "call_request": call_map.get(c.phone)
         } for c in contacts
     ])
 

@@ -32,6 +32,12 @@ const Icons = {
   ),
   List: () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+  ),
+  Clock: () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+  ),
+  Check: () => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
   )
 };
 
@@ -55,7 +61,34 @@ function TagBadge({ tag }) {
   );
 }
 
+const CALL_STATUS_STYLE = {
+  pending:   { color: "#b45309", bg: "#fef9c3", icon: <Icons.Clock /> },
+  confirmed: { color: "#0369a1", bg: "#dbeafe", icon: <Icons.Clock /> },
+  done:      { color: "#15803d", bg: "#dcfce7", icon: <Icons.Check /> },
+};
+
+function CallDetails({ cr, contactName }) {
+  if (!cr) return null;
+  const s = CALL_STATUS_STYLE[cr.status] || CALL_STATUS_STYLE.pending;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
+      <span style={{ background: s.bg, color: s.color, fontSize: "10px", fontWeight: "700", padding: "2px 7px", borderRadius: "999px", display: "flex", alignItems: "center", gap: "3px" }}>
+        {s.icon} {cr.status?.toUpperCase()}
+      </span>
+      {cr.preferred_time && (
+        <span style={{ fontSize: "11px", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "3px" }}>
+          <Icons.Clock /> {cr.preferred_time}
+        </span>
+      )}
+      {cr.caller_name && cr.caller_name !== contactName && (
+        <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>· as {cr.caller_name}</span>
+      )}
+    </div>
+  );
+}
+
 function ContactRow({ c, onDelete }) {
+  const hasCallTag = c.tags && (c.tags.includes("CALL_REQUESTED") || c.tags.includes("CALL_SCHEDULED"));
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
       <div style={{ flex: 1 }}>
@@ -63,6 +96,7 @@ function ContactRow({ c, onDelete }) {
         <div style={{ color: "var(--text-muted)", fontSize: "12px", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
           <Icons.Phone /> {c.phone}
         </div>
+        {hasCallTag && c.call_request && <CallDetails cr={c.call_request} contactName={c.name} />}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", flex: 1, justifyContent: "flex-end", marginRight: "12px" }}>
         {c.tags && c.tags.split(",").map(t => t.trim()).filter(Boolean).map(tag => (
@@ -151,7 +185,7 @@ export default function Contacts() {
     c.phone.includes(searchTerm)
   );
 
-  const callRequests = filteredContacts.filter(c => c.tags && c.tags.includes("CALL_REQUESTED"));
+  const callRequests = filteredContacts.filter(c => c.tags && (c.tags.includes("CALL_REQUESTED") || c.tags.includes("CALL_SCHEDULED")));
 
   // Build tag → contacts map (a contact can appear in multiple groups)
   const tagGroups = {};
@@ -237,24 +271,48 @@ export default function Contacts() {
             <span className="badge" style={{ background: "#fee2e2", color: "#b91c1c" }}>{callRequests.length}</span>
           </h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px" }}>
-            {callRequests.map(c => (
-              <div key={c.id} className="card" style={{ borderLeft: "4px solid #ef4444", padding: "16px" }}>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div style={{ fontWeight: "700", fontSize: "15px", marginBottom: "4px" }}>{c.name || "Unknown"}</div>
-                    <div style={{ color: "var(--primary)", display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: "600" }}>
-                      <Icons.Phone /> {c.phone}
+            {callRequests.map(c => {
+              const cr = c.call_request;
+              const isScheduled = c.tags && c.tags.includes("CALL_SCHEDULED");
+              return (
+                <div key={c.id} className="card" style={{ borderLeft: `4px solid ${isScheduled ? "#16a34a" : "#ef4444"}`, padding: "16px" }}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div style={{ fontWeight: "700", fontSize: "15px", marginBottom: "4px" }}>{c.name || "Unknown"}</div>
+                      <div style={{ color: "var(--primary)", display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: "600" }}>
+                        <Icons.Phone /> {c.phone}
+                      </div>
+                    </div>
+                    <button className="btn-danger" style={{ padding: "6px" }} onClick={() => deleteContact(c.id)}>
+                      <Icons.Trash />
+                    </button>
+                  </div>
+                  <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {cr?.preferred_time && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#374151", background: "#f9fafb", padding: "5px 9px", borderRadius: "6px" }}>
+                        <Icons.Clock /> <strong>Preferred time:</strong> {cr.preferred_time}
+                      </div>
+                    )}
+                    {cr?.caller_name && (
+                      <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                        Name given: <strong>{cr.caller_name}</strong>
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: "6px", marginTop: "2px" }}>
+                      {isScheduled
+                        ? <span className="badge" style={{ background: "#dcfce7", color: "#15803d", fontSize: "10px" }}>SCHEDULED</span>
+                        : <span className="badge badge-failed" style={{ fontSize: "10px" }}>FOLLOW UP ASAP</span>
+                      }
+                      {cr?.status && (
+                        <span className="badge" style={{ background: "#f1f5f9", color: "#64748b", fontSize: "10px" }}>
+                          {cr.status.toUpperCase()}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <button className="btn-danger" style={{ padding: "6px" }} onClick={() => deleteContact(c.id)}>
-                    <Icons.Trash />
-                  </button>
                 </div>
-                <div style={{ marginTop: "12px" }}>
-                  <span className="badge badge-failed" style={{ fontSize: "10px" }}>FOLLOW UP ASAP</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

@@ -125,6 +125,10 @@ def _add_tags(contact, tags_to_add):
         if tag not in existing:
             existing.append(tag)
             changed = True
+    # CALL_SCHEDULED supersedes CALL_REQUESTED — remove it once scheduled
+    if "CALL_SCHEDULED" in tags_to_add and "CALL_REQUESTED" in existing:
+        existing.remove("CALL_REQUESTED")
+        changed = True
     # Auto-qualify when a service-interest tag is detected
     if any(t in QUALIFYING_TAGS for t in tags_to_add) and "QUALIFIED_LEAD" not in existing:
         existing.append("QUALIFIED_LEAD")
@@ -191,14 +195,15 @@ def handle_faq(msg, contact):
     try:
         client = _get_client()
 
-        # Load last 20 conversation turns (40 rows = 20 user+model pairs)
+        # Load the 20 most recent turns (40 rows), then put back in chronological order
         history_rows = (
             ConversationHistory.query
             .filter_by(phone=phone)
-            .order_by(ConversationHistory.created_at.asc())
+            .order_by(ConversationHistory.created_at.desc())
             .limit(40)
             .all()
         )
+        history_rows = list(reversed(history_rows))
         history = [
             types.Content(role=r.role, parts=[types.Part(text=r.content)])
             for r in history_rows

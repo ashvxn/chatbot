@@ -90,6 +90,24 @@ def create_app():
         except Exception as e:
             print(f"Migration error: {e}")
 
+        # Clean up contacts that have both CALL_REQUESTED and CALL_SCHEDULED
+        try:
+            from models import Contact
+            dirty = Contact.query.filter(
+                Contact.tags.like("%CALL_REQUESTED%"),
+                Contact.tags.like("%CALL_SCHEDULED%")
+            ).all()
+            for c in dirty:
+                tags = [t.strip() for t in c.tags.split(",") if t.strip()]
+                if "CALL_REQUESTED" in tags and "CALL_SCHEDULED" in tags:
+                    tags.remove("CALL_REQUESTED")
+                    c.tags = ", ".join(tags)
+            if dirty:
+                db.session.commit()
+                print(f"Cleanup: removed CALL_REQUESTED from {len(dirty)} contacts that already have CALL_SCHEDULED")
+        except Exception as e:
+            print(f"Cleanup error: {e}")
+
     # ✅ START SCHEDULER
     from services.scheduler import start_scheduler
     start_scheduler(app)
