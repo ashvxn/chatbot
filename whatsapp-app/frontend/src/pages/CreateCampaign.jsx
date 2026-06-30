@@ -22,6 +22,9 @@ export default function CreateCampaign() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [tag, setTag] = useState(searchParams.get("tag") || "");
+  // segment = array of tags (AND logic) — set when coming from "By Segment" view
+  const segmentParam  = searchParams.get("segment") || "";
+  const segmentTags   = segmentParam ? segmentParam.split(",").map(t => t.trim()).filter(Boolean) : [];
 
   useEffect(() => {
     api.get("/templates")
@@ -49,7 +52,11 @@ export default function CreateCampaign() {
 
     const formData = new FormData();
     formData.append("template_name", template);
-    formData.append("tag", tag);
+    if (segmentTags.length > 0) {
+      formData.append("segment", segmentTags.join(","));
+    } else {
+      formData.append("tag", tag);
+    }
     formData.append("message", message);
     
     if (imageFile) {
@@ -91,13 +98,26 @@ export default function CreateCampaign() {
         <p style={{ color: "var(--text-muted)", fontSize: "14px", marginTop: "4px" }}>Create a broadcast to reach your contacts on WhatsApp.</p>
       </div>
 
-      {tag && (
+      {segmentTags.length > 0 ? (
+        <div style={{ background: "#ede9fe", border: "1px solid #c4b5fd", borderRadius: "var(--radius)", padding: "12px 16px", marginBottom: "20px", fontSize: "14px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+            <span style={{ fontSize: "16px" }}>🎯</span>
+            <strong>Targeting exact segment</strong>
+            <span style={{ fontSize: "12px", color: "#6d28d9", marginLeft: "auto" }}>Contacts must have ALL of these tags</span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+            {segmentTags.map(t => (
+              <span key={t} style={{ background: "#ddd6fe", color: "#5b21b6", fontSize: "11px", fontWeight: "700", padding: "3px 10px", borderRadius: "999px" }}>{t}</span>
+            ))}
+          </div>
+        </div>
+      ) : tag ? (
         <div style={{ background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: "var(--radius)", padding: "12px 16px", marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px", fontSize: "14px" }}>
           <span style={{ fontSize: "16px" }}>🎯</span>
-          <span>Targeting segment <strong>{tag}</strong> — only contacts with this tag will receive this campaign.</span>
+          <span>Targeting tag <strong>{tag}</strong> — contacts with this tag will receive this campaign.</span>
           <button type="button" onClick={() => setTag("")} style={{ marginLeft: "auto", background: "transparent", border: "none", color: "#1d4ed8", cursor: "pointer", fontWeight: "600", fontSize: "13px" }}>Clear</button>
         </div>
-      )}
+      ) : null}
 
       <div className="card">
         <form onSubmit={submit}>
@@ -113,8 +133,9 @@ export default function CreateCampaign() {
                 <option value="CUSTOM_IMAGE">Custom Image (Within 24hr Window)</option>
               </select>
             </div>
+            {segmentTags.length === 0 && (
             <div>
-              <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", fontSize: "14px" }}>Target Segment (Tag)</label>
+              <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", fontSize: "14px" }}>Target by Tag</label>
               <select onChange={e => setTag(e.target.value)} value={tag} style={{ marginBottom: 0 }}>
                 <option value="">All Contacts</option>
                 {getUniqueTags().map(t => (
@@ -122,6 +143,7 @@ export default function CreateCampaign() {
                 ))}
               </select>
             </div>
+            )}
           </div>
 
           {needsImage() && (

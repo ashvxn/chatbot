@@ -44,8 +44,28 @@ function Sidebar() {
 
   return (
     <div className="sidebar">
-      <div style={{ padding: "32px 24px", fontSize: "20px", fontWeight: "bold", color: "var(--white)", borderBottom: "1px solid rgba(255,255,255,0.05)", marginBottom: "20px" }}>
-        Obsidyne Bot
+      <div style={{ padding: "20px 24px", borderBottom: "1px solid rgba(255,255,255,0.07)", marginBottom: "20px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <img
+            src="/image.png"
+            alt="Obsidyne"
+            style={{
+              width: "36px",
+              height: "36px",
+              objectFit: "contain",
+              filter: "brightness(0) invert(1)",
+              flexShrink: 0
+            }}
+          />
+          <div>
+            <div style={{ fontSize: "15px", fontWeight: "800", color: "var(--white)", letterSpacing: "-0.01em", lineHeight: 1.2 }}>
+              Obsidyne
+            </div>
+            <div style={{ fontSize: "11px", fontWeight: "500", color: "rgba(255,255,255,0.45)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+              Automations
+            </div>
+          </div>
+        </div>
       </div>
       <div style={{ padding: "0 12px" }}>
         <Link to="/" style={navItemStyle("/")}>

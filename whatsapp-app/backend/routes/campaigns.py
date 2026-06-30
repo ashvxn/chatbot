@@ -77,9 +77,14 @@ def create_campaign():
     if data.get("scheduled_at"):
         scheduled_at = datetime.fromisoformat(data["scheduled_at"])
 
+    # segment = comma-separated list of tags (AND logic — contact must have ALL)
+    raw_segment = data.get("segment", "")
+    segment_tags = [t.strip() for t in raw_segment.split(",") if t.strip()] if raw_segment else []
+
     payload = {
-        "tag": data.get("tag"),
-        "message": data.get("message"),
+        "tag":      data.get("tag"),
+        "segment":  segment_tags if segment_tags else None,
+        "message":  data.get("message"),
         "image_url": data.get("image_url")
     }
 

@@ -32,12 +32,17 @@ def process_campaigns(app):
                     db.session.commit()
                     
                     try:
-                        tag = campaign.payload.get("tag")
-                        message = campaign.payload.get("message")
+                        tag      = campaign.payload.get("tag")
+                        segment  = campaign.payload.get("segment")  # list of tags, AND logic
+                        message  = campaign.payload.get("message")
                         image_url = campaign.payload.get("image_url")
-                        
+
                         query = Contact.query.filter_by(opted_in=True)
-                        if tag:
+                        if segment:
+                            # Contact must have ALL tags in the segment
+                            for t in segment:
+                                query = query.filter(Contact.tags.like(f"%{t}%"))
+                        elif tag:
                             query = query.filter(Contact.tags.like(f"%{tag}%"))
                         
                         contacts = query.all()

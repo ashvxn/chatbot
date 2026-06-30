@@ -148,12 +148,57 @@ function TagGroup({ tag, contacts, onDelete, navigate }) {
   );
 }
 
+function SegmentGroup({ tags, contacts, onDelete, navigate }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const segmentParam = tags.join(",");
+
+  return (
+    <div className="card" style={{ marginBottom: "16px", padding: "0", overflow: "hidden" }}>
+      <div
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", cursor: "pointer", background: "var(--bg-main)", borderBottom: collapsed ? "none" : "1px solid var(--border)" }}
+        onClick={() => setCollapsed(c => !c)}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", flex: 1, minWidth: 0 }}>
+          <span style={{ color: "var(--text-muted)", flexShrink: 0 }}>
+            {collapsed ? <Icons.ChevronRight /> : <Icons.ChevronDown />}
+          </span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", alignItems: "center" }}>
+            {tags.map(t => {
+              const s = TAG_COLORS[t] || { bg: "#e2e8f0", color: "#64748b" };
+              return (
+                <span key={t} style={{ background: s.bg, color: s.color, fontSize: "10px", fontWeight: "700", padding: "2px 8px", borderRadius: "999px" }}>{t}</span>
+              );
+            })}
+          </div>
+          <span style={{ fontSize: "11px", color: "var(--text-muted)", flexShrink: 0 }}>
+            · {contacts.length} contact{contacts.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+        <button
+          className="btn-primary"
+          style={{ padding: "6px 14px", fontSize: "12px", display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, marginLeft: "12px" }}
+          onClick={e => { e.stopPropagation(); navigate(`/create-campaign?segment=${encodeURIComponent(segmentParam)}`); }}
+        >
+          <Icons.Campaign /> Start Campaign
+        </button>
+      </div>
+      {!collapsed && (
+        <div style={{ padding: "0 20px" }}>
+          {contacts.map(c => (
+            <ContactRow key={c.id} c={c} onDelete={onDelete} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Contacts() {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [viewMode, setViewMode] = useState("grouped"); // "grouped" | "flat"
+  const [viewMode, setViewMode] = useState("grouped"); // "grouped" | "segment" | "flat"
   const navigate = useNavigate();
 
   const fetchContacts = () => {
@@ -212,6 +257,20 @@ export default function Contacts() {
 
   const untagged = filteredContacts.filter(c => !c.tags || !c.tags.trim());
 
+  // Build segment groups: key = sorted, joined full tag set (exact combination)
+  const segmentMap = {};
+  filteredContacts.forEach(c => {
+    if (!c.tags || !c.tags.trim()) return;
+    const sortedTags = c.tags.split(",").map(t => t.trim()).filter(Boolean).sort();
+    const key = sortedTags.join(",");
+    if (!segmentMap[key]) segmentMap[key] = { tags: sortedTags, contacts: [] };
+    segmentMap[key].contacts.push(c);
+  });
+  // Sort segments: most contacts first, then alphabetically by key
+  const sortedSegments = Object.values(segmentMap).sort((a, b) =>
+    b.contacts.length - a.contacts.length || a.tags.join(",").localeCompare(b.tags.join(","))
+  );
+
   if (error) return (
     <div className="card" style={{ textAlign: "center", padding: "40px" }}>
       <h2 style={{ color: "var(--text-muted)" }}>⚠️ {error}</h2>
@@ -252,6 +311,12 @@ export default function Contacts() {
               style={{ padding: "6px 12px", borderRadius: "6px", fontSize: "13px", fontWeight: "600", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", background: viewMode === "grouped" ? "var(--primary)" : "transparent", color: viewMode === "grouped" ? "white" : "var(--text-muted)" }}
             >
               <Icons.Users /> By Tag
+            </button>
+            <button
+              onClick={() => setViewMode("segment")}
+              style={{ padding: "6px 12px", borderRadius: "6px", fontSize: "13px", fontWeight: "600", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", background: viewMode === "segment" ? "var(--primary)" : "transparent", color: viewMode === "segment" ? "white" : "var(--text-muted)" }}
+            >
+              <Icons.Campaign /> By Segment
             </button>
             <button
               onClick={() => setViewMode("flat")}
@@ -334,6 +399,30 @@ export default function Contacts() {
                 <span style={{ fontWeight: "700", color: "var(--text-muted)", fontSize: "14px" }}>Untagged · {untagged.length}</span>
               </div>
               {untagged.map(c => <ContactRow key={c.id} c={c} onDelete={deleteContact} />)}
+            </div>
+          )}
+        </div>
+      ) : viewMode === "segment" ? (
+        /* SEGMENT VIEW — grouped by exact tag combination */
+        <div>
+          <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
+            {sortedSegments.length} unique segment{sortedSegments.length !== 1 ? "s" : ""} · each group shares the exact same set of labels · campaign targets all contacts in that segment
+          </p>
+          {sortedSegments.length === 0 && (
+            <div style={{ textAlign: "center", padding: "60px", color: "var(--text-muted)" }}>No tagged contacts found.</div>
+          )}
+          {sortedSegments.map((seg, i) => (
+            <SegmentGroup
+              key={i}
+              tags={seg.tags}
+              contacts={seg.contacts}
+              onDelete={deleteContact}
+              navigate={navigate}
+            />
+          ))}
+          {untagged.length > 0 && (
+            <div style={{ padding: "10px 16px", background: "var(--bg-main)", borderRadius: "var(--radius)", fontSize: "12px", color: "var(--text-muted)" }}>
+              {untagged.length} untagged contact{untagged.length !== 1 ? "s" : ""} not shown — assign tags first to include in a segment.
             </div>
           )}
         </div>
