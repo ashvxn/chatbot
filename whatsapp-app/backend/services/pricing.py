@@ -7,7 +7,7 @@ def get_conversation_cost(phone, category="marketing"):
     
     rates = {
         "india": {
-            "marketing": 0.80,  # ₹ per message
+            "marketing": 0.86,  # ₹ per message
             "utility":   0.14,  # ₹ per message
             "service":   0.00   # free within 1,000/month
         },

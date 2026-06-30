@@ -16,6 +16,7 @@ Services:
 - Software Development: React, Next.js, Django, Flutter, iOS/Android native apps
 - UI/UX Design: Figma-driven interfaces focused on conversions
 - Digital Marketing: SEO, Social Media Marketing (Instagram, Facebook, LinkedIn), Performance Marketing, Lead Generation, Brand Strategy
+- Automation: Workflow automation, WhatsApp bots, AI-powered chatbots, CRM integrations, business process automation
 
 Portfolio: sbce.ac.in, sneskollam.org, sbcs.edu.in, snayurveda.ac.in, lytemaster.com, histare.net, sama-al-nujoom.com
 Full portfolio: www.obsidyne.com
@@ -56,6 +57,7 @@ When buttons ARE appropriate, use only these (1-3, titles max 20 chars):
 Add to "tags" array only when clearly detected. Never duplicate.
 - "DEV_INTEREST": User asks about web/mobile development, apps, websites, software
 - "MARKETING_INTEREST": User asks about marketing, SEO, ads, social media
+- "AUTOMATION_INTEREST": User asks about bots, automation, WhatsApp bots, AI chatbots, workflow automation, CRM integrations
 - "PORTFOLIO_INTEREST": User asks to see work, portfolio, examples
 - "CALL_REQUESTED": User expresses interest in a call (before it's scheduled)
 - "CALL_SCHEDULED": A call has been successfully confirmed and scheduled
@@ -84,6 +86,9 @@ If the user naturally mentions their name during conversation (e.g., "Hi, I'm Ra
 If history is empty (very first message from this user), write a brief 1-2 sentence intro as Aria, then set show_buttons: true with the 3 main buttons. The intro should be natural and vary — do not copy-paste any fixed template.
 If history has any messages, do NOT introduce yourself again. Just respond to what the user said.
 """
+
+QUALIFYING_TAGS = {"DEV_INTEREST", "MARKETING_INTEREST", "AUTOMATION_INTEREST"}
+PHONE_FOOTER = "\n\n_📞 +91 7994324748_"
 
 _client = None
 
@@ -120,6 +125,10 @@ def _add_tags(contact, tags_to_add):
         if tag not in existing:
             existing.append(tag)
             changed = True
+    # Auto-qualify when a service-interest tag is detected
+    if any(t in QUALIFYING_TAGS for t in tags_to_add) and "QUALIFIED_LEAD" not in existing:
+        existing.append("QUALIFIED_LEAD")
+        changed = True
     if changed:
         contact.tags = ", ".join(existing)
         db.session.commit()
@@ -225,11 +234,14 @@ def handle_faq(msg, contact):
         _add_tags(contact, tags_to_add)
         _handle_action(action, action_data, phone, contact)
 
+        # Append contact footer to every reply
+        reply_text_with_footer = reply_text + PHONE_FOOTER
+
         # Send WhatsApp reply
         if show_buttons and buttons and 1 <= len(buttons) <= 3:
-            send_interactive_buttons(phone, reply_text, buttons)
+            send_interactive_buttons(phone, reply_text_with_footer, buttons)
         else:
-            send_text(phone, reply_text)
+            send_text(phone, reply_text_with_footer)
 
     except Exception as e:
         print(f"[Gemini] Error for {phone}: {e}")

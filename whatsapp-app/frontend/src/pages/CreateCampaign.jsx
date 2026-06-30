@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../api";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 
 const Icons = {
   ChevronLeft: () => (
@@ -15,12 +15,13 @@ export default function CreateCampaign() {
   const [templates, setTemplates] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [template, setTemplate] = useState("");
-  const [tag, setTag] = useState("");
   const [message, setMessage] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [tag, setTag] = useState(searchParams.get("tag") || "");
 
   useEffect(() => {
     api.get("/templates")
@@ -89,6 +90,14 @@ export default function CreateCampaign() {
         <h1>Launch New Campaign</h1>
         <p style={{ color: "var(--text-muted)", fontSize: "14px", marginTop: "4px" }}>Create a broadcast to reach your contacts on WhatsApp.</p>
       </div>
+
+      {tag && (
+        <div style={{ background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: "var(--radius)", padding: "12px 16px", marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px", fontSize: "14px" }}>
+          <span style={{ fontSize: "16px" }}>🎯</span>
+          <span>Targeting segment <strong>{tag}</strong> — only contacts with this tag will receive this campaign.</span>
+          <button type="button" onClick={() => setTag("")} style={{ marginLeft: "auto", background: "transparent", border: "none", color: "#1d4ed8", cursor: "pointer", fontWeight: "600", fontSize: "13px" }}>Clear</button>
+        </div>
+      )}
 
       <div className="card">
         <form onSubmit={submit}>

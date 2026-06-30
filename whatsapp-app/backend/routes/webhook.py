@@ -41,12 +41,18 @@ def receive():
                     if msg.get("id"):
                         mark_as_read(msg["id"])
 
-                    # Auto-Lead Capture
+                    # Auto-Lead Capture: create or ensure LEAD tag
                     existing = Contact.query.filter_by(phone=sender_phone).first()
                     if not existing:
                         existing = Contact(name=profile_name, phone=sender_phone, tags="LEAD", opted_in=True)
                         db.session.add(existing)
                         db.session.commit()
+                    else:
+                        current_tags = [t.strip() for t in (existing.tags or "").split(",") if t.strip()]
+                        if "LEAD" not in current_tags:
+                            current_tags.insert(0, "LEAD")
+                            existing.tags = ", ".join(current_tags)
+                            db.session.commit()
 
 
                 # 3. HANDLE STATUS UPDATES

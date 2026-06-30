@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../api";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const Icons = {
   Search: () => (
@@ -17,14 +17,110 @@ const Icons = {
   ),
   Alert: () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+  ),
+  Campaign: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+  ),
+  ChevronDown: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+  ),
+  ChevronRight: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+  ),
+  Users: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+  ),
+  List: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
   )
 };
+
+const TAG_COLORS = {
+  LEAD:               { bg: "#f1f5f9", color: "#64748b" },
+  QUALIFIED_LEAD:     { bg: "#dbeafe", color: "#1d4ed8" },
+  CALL_REQUESTED:     { bg: "#fee2e2", color: "#b91c1c" },
+  CALL_SCHEDULED:     { bg: "#dcfce7", color: "#15803d" },
+  DEV_INTEREST:       { bg: "#ede9fe", color: "#6d28d9" },
+  MARKETING_INTEREST: { bg: "#ffedd5", color: "#c2410c" },
+  AUTOMATION_INTEREST:{ bg: "#d1fae5", color: "#065f46" },
+  PORTFOLIO_INTEREST: { bg: "#fef9c3", color: "#854d0e" },
+};
+
+function TagBadge({ tag }) {
+  const style = TAG_COLORS[tag] || { bg: "var(--bg-main)", color: "var(--text-muted)" };
+  return (
+    <span className="badge" style={{ background: style.bg, color: style.color, fontSize: "10px", fontWeight: "700" }}>
+      {tag}
+    </span>
+  );
+}
+
+function ContactRow({ c, onDelete }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: "600", fontSize: "14px" }}>{c.name || "Unknown"}</div>
+        <div style={{ color: "var(--text-muted)", fontSize: "12px", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
+          <Icons.Phone /> {c.phone}
+        </div>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", flex: 1, justifyContent: "flex-end", marginRight: "12px" }}>
+        {c.tags && c.tags.split(",").map(t => t.trim()).filter(Boolean).map(tag => (
+          <TagBadge key={tag} tag={tag} />
+        ))}
+      </div>
+      <button className="btn-danger" style={{ padding: "6px" }} onClick={() => onDelete(c.id)}>
+        <Icons.Trash />
+      </button>
+    </div>
+  );
+}
+
+function TagGroup({ tag, contacts, onDelete, navigate }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const style = TAG_COLORS[tag] || { bg: "var(--bg-main)", color: "var(--text-muted)" };
+
+  return (
+    <div className="card" style={{ marginBottom: "20px", padding: "0", overflow: "hidden" }}>
+      <div
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", cursor: "pointer", background: style.bg, borderBottom: collapsed ? "none" : "1px solid var(--border)" }}
+        onClick={() => setCollapsed(c => !c)}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span style={{ color: collapsed ? "var(--text-muted)" : style.color }}>
+            {collapsed ? <Icons.ChevronRight /> : <Icons.ChevronDown />}
+          </span>
+          <span style={{ fontWeight: "700", fontSize: "14px", color: style.color }}>{tag}</span>
+          <span className="badge" style={{ background: "rgba(0,0,0,0.08)", color: style.color, fontSize: "11px" }}>
+            {contacts.length} contact{contacts.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+        <button
+          className="btn-primary"
+          style={{ padding: "6px 14px", fontSize: "12px", display: "flex", alignItems: "center", gap: "6px" }}
+          onClick={e => { e.stopPropagation(); navigate(`/create-campaign?tag=${encodeURIComponent(tag)}`); }}
+        >
+          <Icons.Campaign /> Start Campaign
+        </button>
+      </div>
+      {!collapsed && (
+        <div style={{ padding: "0 20px" }}>
+          {contacts.map(c => (
+            <ContactRow key={c.id} c={c} onDelete={onDelete} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Contacts() {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState("grouped"); // "grouped" | "flat"
+  const navigate = useNavigate();
 
   const fetchContacts = () => {
     setLoading(true);
@@ -37,72 +133,116 @@ export default function Contacts() {
           setError("Invalid data received.");
         }
       })
-      .catch(err => {
-        setError("Unable to reach backend.");
-      })
+      .catch(() => setError("Unable to reach backend."))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    fetchContacts();
-  }, []);
+  useEffect(() => { fetchContacts(); }, []);
 
   const deleteContact = async (id) => {
-    if (window.confirm("Are you sure?")) {
+    if (window.confirm("Remove this contact?")) {
       await api.delete(`/contacts/${id}`);
       fetchContacts();
     }
   };
 
-  const filteredContacts = contacts.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredContacts = contacts.filter(c =>
+    (c.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.phone.includes(searchTerm)
   );
 
   const callRequests = filteredContacts.filter(c => c.tags && c.tags.includes("CALL_REQUESTED"));
-  const regularContacts = filteredContacts.filter(c => !c.tags || !c.tags.includes("CALL_REQUESTED"));
 
-  if (error) return <div className="card" style={{ textAlign: "center", padding: "40px" }}><h2 style={{ color: "var(--text-muted)" }}>⚠️ {error}</h2></div>;
+  // Build tag → contacts map (a contact can appear in multiple groups)
+  const tagGroups = {};
+  filteredContacts.forEach(c => {
+    if (!c.tags) return;
+    c.tags.split(",").forEach(t => {
+      const tag = t.trim();
+      if (!tag) return;
+      if (!tagGroups[tag]) tagGroups[tag] = [];
+      tagGroups[tag].push(c);
+    });
+  });
+
+  // Priority order for tag sections
+  const TAG_ORDER = ["QUALIFIED_LEAD", "CALL_REQUESTED", "CALL_SCHEDULED", "DEV_INTEREST", "MARKETING_INTEREST", "AUTOMATION_INTEREST", "PORTFOLIO_INTEREST", "LEAD"];
+  const sortedTags = Object.keys(tagGroups).sort((a, b) => {
+    const ai = TAG_ORDER.indexOf(a);
+    const bi = TAG_ORDER.indexOf(b);
+    if (ai === -1 && bi === -1) return a.localeCompare(b);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+
+  const untagged = filteredContacts.filter(c => !c.tags || !c.tags.trim());
+
+  if (error) return (
+    <div className="card" style={{ textAlign: "center", padding: "40px" }}>
+      <h2 style={{ color: "var(--text-muted)" }}>⚠️ {error}</h2>
+    </div>
+  );
 
   return (
     <div>
+      {/* Header */}
       <div className="flex justify-between items-center" style={{ marginBottom: "32px" }}>
         <div>
           <h1>Lead Management</h1>
-          <p style={{ color: "var(--text-muted)", fontSize: "14px", marginTop: "4px" }}>Manage your contacts and follow up with interested leads.</p>
+          <p style={{ color: "var(--text-muted)", fontSize: "14px", marginTop: "4px" }}>
+            {contacts.length} total contacts · {contacts.filter(c => c.tags && c.tags.includes("QUALIFIED_LEAD")).length} qualified leads
+          </p>
         </div>
         <Link to="/add-contact">
           <button className="btn-primary"><Icons.Plus /> Add New Lead</button>
         </Link>
       </div>
 
-      <div className="card" style={{ padding: "16px" }}>
-        <div style={{ position: "relative" }}>
-          <span style={{ position: "absolute", left: "12px", top: "10px", color: "var(--text-muted)" }}><Icons.Search /></span>
-          <input 
-            type="text" 
-            placeholder="Search leads by name or phone..." 
-            style={{ paddingLeft: "40px", marginBottom: 0 }}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      {/* Search + View Toggle */}
+      <div className="card" style={{ padding: "16px", marginBottom: "24px" }}>
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <div style={{ position: "relative", flex: 1 }}>
+            <span style={{ position: "absolute", left: "12px", top: "10px", color: "var(--text-muted)" }}><Icons.Search /></span>
+            <input
+              type="text"
+              placeholder="Search by name or phone..."
+              style={{ paddingLeft: "40px", marginBottom: 0 }}
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div style={{ display: "flex", background: "var(--bg-main)", borderRadius: "var(--radius)", padding: "4px", gap: "4px", flexShrink: 0 }}>
+            <button
+              onClick={() => setViewMode("grouped")}
+              style={{ padding: "6px 12px", borderRadius: "6px", fontSize: "13px", fontWeight: "600", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", background: viewMode === "grouped" ? "var(--primary)" : "transparent", color: viewMode === "grouped" ? "white" : "var(--text-muted)" }}
+            >
+              <Icons.Users /> By Tag
+            </button>
+            <button
+              onClick={() => setViewMode("flat")}
+              style={{ padding: "6px 12px", borderRadius: "6px", fontSize: "13px", fontWeight: "600", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", background: viewMode === "flat" ? "var(--primary)" : "transparent", color: viewMode === "flat" ? "white" : "var(--text-muted)" }}
+            >
+              <Icons.List /> All Leads
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* CALL REQUESTS PANEL */}
+      {/* Urgent Call Requests */}
       {callRequests.length > 0 && (
-        <div style={{ marginBottom: "40px" }}>
-          <h2 style={{ color: "#b91c1c", display: "flex", alignItems: "center", gap: "10px", fontSize: "18px", marginBottom: "16px" }}>
+        <div style={{ marginBottom: "32px" }}>
+          <h2 style={{ color: "#b91c1c", display: "flex", alignItems: "center", gap: "10px", fontSize: "16px", marginBottom: "12px" }}>
             <Icons.Alert /> Urgent Call Requests
             <span className="badge" style={{ background: "#fee2e2", color: "#b91c1c" }}>{callRequests.length}</span>
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "20px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px" }}>
             {callRequests.map(c => (
-              <div key={c.id} className="card" style={{ borderLeft: "4px solid #ef4444", padding: "20px" }}>
+              <div key={c.id} className="card" style={{ borderLeft: "4px solid #ef4444", padding: "16px" }}>
                 <div className="flex justify-between items-start">
                   <div>
-                    <div style={{ fontWeight: "700", fontSize: "16px", marginBottom: "4px" }}>{c.name}</div>
-                    <div style={{ color: "var(--primary)", display: "flex", alignItems: "center", gap: "6px", fontSize: "14px", fontWeight: "600" }}>
+                    <div style={{ fontWeight: "700", fontSize: "15px", marginBottom: "4px" }}>{c.name || "Unknown"}</div>
+                    <div style={{ color: "var(--primary)", display: "flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: "600" }}>
                       <Icons.Phone /> {c.phone}
                     </div>
                   </div>
@@ -110,7 +250,7 @@ export default function Contacts() {
                     <Icons.Trash />
                   </button>
                 </div>
-                <div style={{ marginTop: "16px" }}>
+                <div style={{ marginTop: "12px" }}>
                   <span className="badge badge-failed" style={{ fontSize: "10px" }}>FOLLOW UP ASAP</span>
                 </div>
               </div>
@@ -119,48 +259,68 @@ export default function Contacts() {
         </div>
       )}
 
-      {/* REGULAR CONTACTS */}
-      <h2 style={{ fontSize: "18px", marginBottom: "16px" }}>All Leads</h2>
-      <div className="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Phone Number</th>
-              <th>Tags</th>
-              <th style={{ textAlign: "right" }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && contacts.length === 0 ? (
-              <tr><td colSpan="4" style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>Loading leads...</td></tr>
-            ) : regularContacts.length === 0 ? (
-              <tr><td colSpan="4" style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>No leads found.</td></tr>
-            ) : (
-              regularContacts.map(c => (
-                <tr key={c.id}>
-                  <td style={{ fontWeight: "600" }}>{c.name}</td>
-                  <td style={{ color: "var(--text-muted)" }}>{c.phone}</td>
-                  <td>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                      {c.tags && c.tags.split(",").map(tag => (
-                        <span key={tag} className="badge" style={{ background: "var(--bg-main)", color: "var(--text-muted)", fontSize: "10px" }}>
-                          {tag.trim()}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td style={{ textAlign: "right" }}>
-                    <button className="btn-danger" style={{ padding: "6px" }} onClick={() => deleteContact(c.id)}>
-                      <Icons.Trash />
-                    </button>
-                  </td>
+      {loading && contacts.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "60px", color: "var(--text-muted)" }}>Loading contacts...</div>
+      ) : viewMode === "grouped" ? (
+        /* GROUPED VIEW */
+        <div>
+          {sortedTags.length === 0 && untagged.length === 0 && (
+            <div style={{ textAlign: "center", padding: "60px", color: "var(--text-muted)" }}>No contacts found.</div>
+          )}
+          {sortedTags.map(tag => (
+            <TagGroup key={tag} tag={tag} contacts={tagGroups[tag]} onDelete={deleteContact} navigate={navigate} />
+          ))}
+          {untagged.length > 0 && (
+            <div className="card" style={{ marginBottom: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+                <span style={{ fontWeight: "700", color: "var(--text-muted)", fontSize: "14px" }}>Untagged · {untagged.length}</span>
+              </div>
+              {untagged.map(c => <ContactRow key={c.id} c={c} onDelete={deleteContact} />)}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* FLAT TABLE VIEW */
+        <div>
+          <h2 style={{ fontSize: "16px", marginBottom: "16px" }}>All Leads ({filteredContacts.length})</h2>
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Phone</th>
+                  <th>Tags</th>
+                  <th style={{ textAlign: "right" }}>Actions</th>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {filteredContacts.length === 0 ? (
+                  <tr><td colSpan="4" style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>No leads found.</td></tr>
+                ) : (
+                  filteredContacts.map(c => (
+                    <tr key={c.id}>
+                      <td style={{ fontWeight: "600" }}>{c.name || "Unknown"}</td>
+                      <td style={{ color: "var(--text-muted)" }}>{c.phone}</td>
+                      <td>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                          {c.tags && c.tags.split(",").map(t => t.trim()).filter(Boolean).map(tag => (
+                            <TagBadge key={tag} tag={tag} />
+                          ))}
+                        </div>
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <button className="btn-danger" style={{ padding: "6px" }} onClick={() => deleteContact(c.id)}>
+                          <Icons.Trash />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
