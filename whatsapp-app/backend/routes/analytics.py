@@ -1,4 +1,5 @@
-from flask import Blueprint, jsonify, request
+import requests as http_requests
+from flask import Blueprint, jsonify, request, current_app
 from datetime import datetime, timedelta
 from extensions import db
 from models import Campaign, CampaignRecipient, Contact, ConversationHistory, CallRequest
@@ -252,3 +253,46 @@ def get_overview():
             "failed":    total_failed,
         }
     })
+
+
+TIER_LABELS = {
+    "TIER_1K":        "1,000 / day",
+    "TIER_10K":       "10,000 / day",
+    "TIER_100K":      "100,000 / day",
+    "TIER_UNLIMITED": "Unlimited",
+    "TIER_NOT_SET":   "Not set",
+}
+
+
+@analytics_bp.route("/phone-status", methods=["GET"])
+def get_phone_status():
+    token    = current_app.config.get("WHATSAPP_TOKEN")
+    phone_id = current_app.config.get("PHONE_NUMBER_ID")
+
+    if not token or not phone_id:
+        return jsonify({"error": "WhatsApp not configured"}), 400
+
+    try:
+        resp = http_requests.get(
+            f"https://graph.facebook.com/v21.0/{phone_id}",
+            params={
+                "fields": "quality_rating,messaging_limit_tier,display_phone_number,verified_name,code_verification_status",
+                "access_token": token,
+            },
+            timeout=6,
+        )
+        data = resp.json()
+        if "error" in data:
+            return jsonify({"error": data["error"].get("message", "Meta API error")}), 400
+
+        tier_raw = data.get("messaging_limit_tier", "TIER_NOT_SET")
+        return jsonify({
+            "phone":    data.get("display_phone_number", ""),
+            "name":     data.get("verified_name", ""),
+            "quality":  data.get("quality_rating", "UNKNOWN"),   # GREEN / YELLOW / RED / UNKNOWN
+            "tier":     tier_raw,
+            "tier_label": TIER_LABELS.get(tier_raw, tier_raw),
+            "verified": data.get("code_verification_status") == "VERIFIED",
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

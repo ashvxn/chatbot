@@ -1,4 +1,6 @@
+import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
+import api from "./api";
 import Contacts from "./pages/Contacts";
 import CreateContact from "./pages/CreateContact";
 import Campaigns from "./pages/Campaigns";
@@ -23,6 +25,61 @@ const Icons = {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
   )
 };
+
+const QUALITY_CONFIG = {
+  GREEN:   { color: "#22c55e", label: "High",    dot: "●" },
+  YELLOW:  { color: "#f59e0b", label: "Medium",  dot: "●" },
+  RED:     { color: "#ef4444", label: "Low",     dot: "●" },
+  UNKNOWN: { color: "#64748b", label: "Unknown", dot: "○" },
+};
+
+function PhoneStatusWidget() {
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = () => {
+      api.get("/analytics/phone-status")
+        .then(res => setStatus(res.data))
+        .catch(() => setStatus(null))
+        .finally(() => setLoading(false));
+    };
+    load();
+    const iv = setInterval(load, 5 * 60 * 1000);
+    return () => clearInterval(iv);
+  }, []);
+
+  if (loading) return (
+    <div style={{ padding: "16px 20px", borderTop: "1px solid rgba(255,255,255,0.07)", fontSize: "12px", color: "rgba(255,255,255,0.3)" }}>
+      Checking status…
+    </div>
+  );
+  if (!status || status.error) return null;
+
+  const q = QUALITY_CONFIG[status.quality] || QUALITY_CONFIG.UNKNOWN;
+
+  return (
+    <div style={{ padding: "14px 20px", borderTop: "1px solid rgba(255,255,255,0.07)", marginTop: "auto" }}>
+      <div style={{ fontSize: "10px", fontWeight: "600", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "8px" }}>
+        WA Number Status
+      </div>
+      {status.phone && (
+        <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.55)", marginBottom: "6px", fontFamily: "monospace" }}>
+          {status.phone}
+        </div>
+      )}
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+        <span style={{ color: q.color, fontSize: "14px", lineHeight: 1 }}>{q.dot}</span>
+        <span style={{ fontSize: "12px", color: "rgba(255,255,255,0.75)", fontWeight: "500" }}>
+          Quality: <span style={{ color: q.color }}>{q.label}</span>
+        </span>
+      </div>
+      <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.5)" }}>
+        Limit: <span style={{ color: "rgba(255,255,255,0.75)", fontWeight: "500" }}>{status.tier_label}</span>
+      </div>
+    </div>
+  );
+}
 
 function Sidebar() {
   const location = useLocation();
@@ -84,6 +141,7 @@ function Sidebar() {
           <Icons.Analytics /> Analytics
         </Link>
       </div>
+      <PhoneStatusWidget />
     </div>
   );
 }
