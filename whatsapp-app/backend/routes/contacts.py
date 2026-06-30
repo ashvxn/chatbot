@@ -57,6 +57,42 @@ def add_contact():
 
     return jsonify({"message": "Contact added"}), 201
 
+# Bulk import contacts
+@contacts_bp.route("/bulk", methods=["POST"])
+def bulk_import():
+    data = request.json
+    contacts_data = data.get("contacts", [])
+    if not contacts_data:
+        return jsonify({"error": "No contacts provided"}), 400
+
+    added = []
+    skipped = []
+
+    for item in contacts_data:
+        phone = item.get("phone", "").strip()
+        if not phone:
+            continue
+        existing = Contact.query.filter_by(phone=phone).first()
+        if existing:
+            skipped.append(phone)
+            continue
+        contact = Contact(
+            name=item.get("name") or None,
+            phone=phone,
+            opted_in=item.get("opted_in", True),
+            tags=item.get("tags", "")
+        )
+        db.session.add(contact)
+        added.append(phone)
+
+    db.session.commit()
+    return jsonify({
+        "added":   len(added),
+        "skipped": len(skipped),
+        "added_phones":   added,
+        "skipped_phones": skipped
+    }), 201
+
 # Update a contact
 @contacts_bp.route("/<int:id>", methods=["PUT"])
 def update_contact(id):
